@@ -25,7 +25,7 @@ def main(instance_id):
     
     with sync_playwright() as p:
         print(rb(f"Launching instance {instance_id}"))
-        browser = p.firefox.launch(headless=False)  # Ensure all instances are visible
+        browser = p.chromium.launch(channel="msedge", headless=False)  # Use Microsoft Edge
         context = browser.new_context(viewport={"height": 700, "width": 500})
         page = context.new_page()
         page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")

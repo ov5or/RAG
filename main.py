@@ -44,7 +44,7 @@ def countdown(t):
 
 sess = Client(headers={"user-agent": "Mozilla/5.0"},timeout=300)
 def main():
-    username = f"ov5orAltGen{randint(1000000, 9999999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(3)])}"
+    username = f"ov5orAltGen{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
     password = f"{passwordrb}@_{token_hex(5)}"
     cookie_roblox=""
     with sync_playwright() as p:

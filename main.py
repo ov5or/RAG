@@ -1,112 +1,92 @@
-from turtle import delay
 from httpx import post, Client
 from json import load
-import os, sys
-from httpx import Client, post
-from urllib import request
 from playwright.sync_api import sync_playwright
-from httpx import Client
 from secrets import token_hex
 from random import randint, choice
-import pystyle
 from pystyle import Colors, Colorate
 from time import sleep
-from json import loads
-from re import search
-import time
-import threading  # Import threading for multi-threading
+import threading
 
-# -- config zone --#
+# -- Config Zone --#
 saverb = open("robloxgen.txt", "a+", encoding="utf-8")
 configrb = load(open("configroblox.json", "r", encoding="utf8"))
 userrb = configrb["names"]
 passwordrb = configrb["password"]
 webhookroblox = configrb["webhook"]
-ranname = configrb["random-name"]
 
-# -- color zone --#
-
+# -- Color Zone --#
 def rb(text):
     return Colorate.Horizontal(Colors.rainbow, text)
 
-# -- cd zone --#
-delayreg = "60"
-def countdown(t):  
-    while t:
-        mins, secs = divmod(t, 60)
-        timer = '{:02d}:{:02d}'.format(mins, secs)
-        print(f"Register In : {timer}", end="\r")
-        time.sleep(1)
-        t -= 1
-
-# -- main zone --#
-
-sess = Client(headers={"user-agent": "Mozilla/5.0"}, timeout=300)
-
-def main():
+# -- Main Function --#
+def main(instance_id):
     username = f"ov5orAltGen{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
     password = f"{passwordrb}@_{token_hex(5)}"
-    cookie_roblox = ""
+    
     with sync_playwright() as p:
-        Browser = p.firefox.launch(headless=False)
-        BContext = Browser.new_context(viewport={"height": 700, "width": 500})
-        Page = BContext.new_page()
-        Page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
-        print(rb("Start Register"))
-        Page.select_option('[id="MonthDropdown"]', label="April")
-        print(rb("Select Month"))
+        print(rb(f"Launching instance {instance_id}"))
+        browser = p.firefox.launch(headless=False)  # Ensure all instances are visible
+        context = browser.new_context(viewport={"height": 700, "width": 500})
+        page = context.new_page()
+        page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
+        print(rb(f"Instance {instance_id}: Start Register"))
+        
+        # Fill the form
+        page.select_option('[id="MonthDropdown"]', label="April")
+        print(rb(f"Instance {instance_id}: Select Month"))
         try:
-            Page.select_option('[name="birthdayDay"]', label="25", timeout=5000, force=True)
-            print(rb("Select Day"))
+            page.select_option('[name="birthdayDay"]', label="25", timeout=5000, force=True)
+            print(rb(f"Instance {instance_id}: Select Day"))
         except:
             pass
-        Page.select_option('[id="YearDropdown"]', label=str(randint(1995, 2003)))
-        print(rb("Select Year"))
-        Page.type('[id="signup-username"]', username)
-        print(rb("Type Username"))
-        Page.type('[id="signup-password"]', password)
-        print(rb("Type Password"))
-        Page.click('[id="MaleButton"]')
-        print(rb("Select to Male"))
+        page.select_option('[id="YearDropdown"]', label=str(randint(1995, 2003)))
+        print(rb(f"Instance {instance_id}: Select Year"))
+        page.type('[id="signup-username"]', username)
+        print(rb(f"Instance {instance_id}: Type Username"))
+        page.type('[id="signup-password"]', password)
+        print(rb(f"Instance {instance_id}: Type Password"))
+        page.click('[id="MaleButton"]')
+        print(rb(f"Instance {instance_id}: Select Male"))
         sleep(1.5)
-        Page.evaluate("""document.querySelector('[id="signup-button"]').click()""")
-        print(rb("Click"))
-        sleep(5)
-        Page.wait_for_load_state("networkidle")
-        try: 
-            Page.wait_for_selector("iframe", timeout=5000) 
-            input("Got captcha, please solve it and press Enter.")  # Solve funcaptcha
-        except:
-            pass  # Pass
+        page.evaluate("""document.querySelector('[id="signup-button"]').click()""")
+        print(rb(f"Instance {instance_id}: Click Signup"))
+        
+        # Wait for potential CAPTCHA
         try:
-            for cookie_roblox in filter(lambda data: data["name"] == ".ROBLOSECURITY", BContext.cookies()):
+            page.wait_for_selector("iframe", timeout=5000)
+            input(f"Instance {instance_id}: Solve CAPTCHA, then press Enter to continue.")
+        except:
+            pass
+        
+        # Save cookies
+        try:
+            for cookie_roblox in filter(lambda data: data["name"] == ".ROBLOSECURITY", context.cookies()):
                 saverb.write(f"GEN :  {username} |-| {password} |-| {cookie_roblox['value']}\n")
-                print(rb("Success!"))
+                print(rb(f"Instance {instance_id}: Success!"))
                 post(webhookroblox, json={
                     "content": "🚗",
                     "embeds": [{
-                        "title": f"ROBLOX GEN",
+                        "title": f"ROBLOX GEN - Instance {instance_id}",
                         "description": f"> :white_check_mark:Status : success!\n> :speech_balloon:Name : {username}\n> :closed_lock_with_key:PassWord : ||{password}||\n> :cookie:Cookie : ||{cookie_roblox['value']}||",
                         "color": 2752256
                     }]
                 })
-                print(rb("New Register in 60 Seconds"))
+                print(rb(f"Instance {instance_id}: Registered successfully"))
                 saverb.close()
         except:
-            print("Error, Account doesn't have cookies!")
+            print(f"Instance {instance_id}: Error, account doesn't have cookies!")
+        
+        # Close browser
+        browser.close()
 
-def loop():
-    main()
-    countdown(int(delayreg))
-
-# Launch 10 threads
+# Launch 10 instances in parallel
 def launch_multiple_instances():
     threads = []
-    for _ in range(10):  # Launch 10 threads
-        thread = threading.Thread(target=loop)
+    for i in range(1, 11):  # Launch 10 instances
+        thread = threading.Thread(target=main, args=(i,))
         thread.start()
         threads.append(thread)
-        sleep(2)  # Slight delay to stagger starts
+        sleep(1)  # Add slight delay to prevent launching all at once
 
     # Wait for all threads to finish
     for thread in threads:

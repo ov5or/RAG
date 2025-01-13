@@ -22,11 +22,11 @@ def rb(text):
 def main(instance_id):
     username = f"ov5orAltGen{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
     password = f"{passwordrb}@_{token_hex(5)}"
-    
+
     with sync_playwright() as p:
         print(rb(f"Launching instance {instance_id}"))
         browser = p.chromium.launch(channel="msedge", headless=False)  # Use Microsoft Edge
-        context = browser.new_context(viewport={"height": 700, "width": 500})
+        context = browser.new_context(no_viewport=True)  # Shared session (non-private)
         page = context.new_page()
         page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
         print(rb(f"Instance {instance_id}: Start Register"))
@@ -63,6 +63,10 @@ def main(instance_id):
             for cookie_roblox in filter(lambda data: data["name"] == ".ROBLOSECURITY", context.cookies()):
                 saverb.write(f"GEN :  {username} |-| {password} |-| {cookie_roblox['value']}\n")
                 print(rb(f"Instance {instance_id}: Success!"))
+                
+                # Print the username and password for successful account creation
+                print(f"Account Created Successfully!\nUsername: {username}\nPassword: {password}")
+                
                 post(webhookroblox, json={
                     "content": "🚗",
                     "embeds": [{
@@ -79,10 +83,11 @@ def main(instance_id):
         # Close browser
         browser.close()
 
-# Launch 10 instances in parallel
+# Launch 5 instances in parallel
 def launch_multiple_instances():
+    max_instances = 5
     threads = []
-    for i in range(1, 11):  # Launch 10 instances
+    for i in range(1, max_instances + 1):  # Launch up to 5 instances
         thread = threading.Thread(target=main, args=(i,))
         thread.start()
         threads.append(thread)

@@ -20,14 +20,14 @@ def rb(text):
 
 # -- Main Function --#
 def main(instance_id):
-    username = f"ov5orAlt{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
+    username = f"ov5orAltGen{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
     password = f"{passwordrb}@_{token_hex(5)}"
 
     with sync_playwright() as p:
         print(rb(f"Launching instance {instance_id}"))
-        # Launch Microsoft Edge in normal mode
-        browser = p.chromium.launch(channel="msedge", headless=False, args=["--disable-inprivate"])
-        context = browser.new_context()  # Normal browsing session (not private)
+        # Launch Google Chrome in normal mode
+        browser = p.chromium.launch(channel="chrome", headless=False)  # Google Chrome
+        context = browser.new_context()  # Normal browsing session
         page = context.new_page()
         page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
         print(rb(f"Instance {instance_id}: Start Register"))
@@ -87,7 +87,7 @@ def main(instance_id):
 
 # Launch 5 instances in parallel
 def launch_multiple_instances():
-    max_instances = 8
+    max_instances = 5
     threads = []
     for i in range(1, max_instances + 1):  # Launch up to 5 instances
         thread = threading.Thread(target=main, args=(i,))

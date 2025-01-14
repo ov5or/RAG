@@ -25,8 +25,9 @@ def main(instance_id):
 
     with sync_playwright() as p:
         print(rb(f"Launching instance {instance_id}"))
-        browser = p.chromium.launch(channel="msedge", headless=False)  # Use Microsoft Edge
-        context = browser.new_context(no_viewport=True)  # Shared session (non-private)
+        # Launch Microsoft Edge in normal mode
+        browser = p.chromium.launch(channel="msedge", headless=False)  
+        context = browser.new_context()  # Normal browsing session (not private)
         page = context.new_page()
         page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
         print(rb(f"Instance {instance_id}: Start Register"))

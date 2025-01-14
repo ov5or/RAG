@@ -26,7 +26,7 @@ def main(instance_id):
     with sync_playwright() as p:
         print(rb(f"Launching instance {instance_id}"))
         # Launch Microsoft Edge in normal mode
-        browser = p.chromium.launch(channel="msedge", headless=False)  
+        browser = p.chromium.launch(channel="msedge", headless=False, args=["--disable-inprivate"])
         context = browser.new_context()  # Normal browsing session (not private)
         page = context.new_page()
         page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
@@ -81,12 +81,13 @@ def main(instance_id):
         except:
             print(f"Instance {instance_id}: Error, account doesn't have cookies!")
         
-        # Close browser
+        # Keep the browser open after successful registration
+        input(f"Instance {instance_id}: Registration complete. Press Enter to close browser.")
         browser.close()
 
 # Launch 5 instances in parallel
 def launch_multiple_instances():
-    max_instances = 5
+    max_instances = 8
     threads = []
     for i in range(1, max_instances + 1):  # Launch up to 5 instances
         thread = threading.Thread(target=main, args=(i,))

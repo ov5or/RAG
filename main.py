@@ -1,4 +1,4 @@
-from httpx import post, Client
+from httpx import post
 from json import load
 from playwright.sync_api import sync_playwright
 from secrets import token_hex
@@ -26,9 +26,16 @@ def main(instance_id):
     with sync_playwright() as p:
         print(rb(f"Launching instance {instance_id}"))
         # Launch Google Chrome in normal mode
-        browser = p.chromium.launch(channel="chrome", headless=False)  # Google Chrome
-        context = browser.new_context()  # Normal browsing session
-        page = context.new_page()
+        browser = p.chromium.launch(
+            channel="chrome", 
+            headless=False, 
+            args=[
+                "--disable-extensions",  # Disable extensions
+                "--disable-background-networking",  # Avoid background tasks
+                "--disable-features=IsolateOrigins,site-per-process",  # Improve performance
+            ]
+        )
+        page = browser.new_page()  # Open a normal browser page
         page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
         print(rb(f"Instance {instance_id}: Start Register"))
         
@@ -61,7 +68,7 @@ def main(instance_id):
         
         # Save cookies
         try:
-            for cookie_roblox in filter(lambda data: data["name"] == ".ROBLOSECURITY", context.cookies()):
+            for cookie_roblox in filter(lambda data: data["name"] == ".ROBLOSECURITY", page.context.cookies()):
                 saverb.write(f"GEN :  {username} |-| {password} |-| {cookie_roblox['value']}\n")
                 print(rb(f"Instance {instance_id}: Success!"))
                 

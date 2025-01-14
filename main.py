@@ -20,7 +20,7 @@ def rb(text):
 
 # -- Main Function --#
 def main(instance_id):
-    username = f"ov5orAltGen{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
+    username = f"ov5orAlt{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
     password = f"{passwordrb}@_{token_hex(5)}"
 
     with sync_playwright() as p:

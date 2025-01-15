@@ -1,110 +1,135 @@
-from httpx import post
-from json import load
-from playwright.sync_api import sync_playwright
-from secrets import token_hex
-from random import randint, choice
-from pystyle import Colors, Colorate
-from time import sleep
-import threading
+import discord
+from discord import app_commands
+import os
+import aiohttp
+import asyncio
+from datetime import datetime, timedelta
+import requests
 
-# -- Config Zone --#
-saverb = open("robloxgen.txt", "a+", encoding="utf-8")
-configrb = load(open("configroblox.json", "r", encoding="utf8"))
-userrb = configrb["names"]
-passwordrb = configrb["password"]
-webhookroblox = configrb["webhook"]
 
-# -- Color Zone --#
-def rb(text):
-    return Colorate.Horizontal(Colors.rainbow, text)
+intents = discord.Intents.default()
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 
-# -- Main Function --#
-def main(instance_id):
-    username = f"ov5orAltGen{randint(10000, 99999)}{''.join([choice('abcdefghijklmnopqrstuvwxyz') for _ in range(4)])}"
-    password = f"{passwordrb}@_{token_hex(5)}"
+cooldowns = {}
 
-    with sync_playwright() as p:
-        print(rb(f"Launching instance {instance_id}"))
-        # Launch Google Chrome in normal mode
-        browser = p.chromium.launch(
-            channel="chrome", 
-            headless=False, 
-            args=[
-                "--disable-extensions",  # Disable extensions
-                "--disable-background-networking",  # Avoid background tasks
-                "--disable-features=IsolateOrigins,site-per-process",  # Improve performance
-            ]
-        )
-        page = browser.new_page()  # Open a normal browser page
-        page.goto("https://www.roblox.com", timeout=60000, wait_until="networkidle")
-        print(rb(f"Instance {instance_id}: Start Register"))
-        
-        # Fill the form
-        page.select_option('[id="MonthDropdown"]', label="April")
-        print(rb(f"Instance {instance_id}: Select Month"))
-        try:
-            page.select_option('[name="birthdayDay"]', label="25", timeout=5000, force=True)
-            print(rb(f"Instance {instance_id}: Select Day"))
-        except:
-            pass
-        page.select_option('[id="YearDropdown"]', label=str(randint(1995, 2003)))
-        print(rb(f"Instance {instance_id}: Select Year"))
-        page.type('[id="signup-username"]', username)
-        print(rb(f"Instance {instance_id}: Type Username"))
-        page.type('[id="signup-password"]', password)
-        print(rb(f"Instance {instance_id}: Type Password"))
-        page.click('[id="MaleButton"]')
-        print(rb(f"Instance {instance_id}: Select Male"))
-        sleep(1.5)
-        page.evaluate("""document.querySelector('[id="signup-button"]').click()""")
-        print(rb(f"Instance {instance_id}: Click Signup"))
-        
-        # Wait for potential CAPTCHA
-        try:
-            page.wait_for_selector("iframe", timeout=5000)
-            input(f"Instance {instance_id}: Solve CAPTCHA, then press Enter to continue.")
-        except:
-            pass
-        
-        # Save cookies
-        try:
-            for cookie_roblox in filter(lambda data: data["name"] == ".ROBLOSECURITY", page.context.cookies()):
-                saverb.write(f"GEN :  {username} |-| {password} |-| {cookie_roblox['value']}\n")
-                print(rb(f"Instance {instance_id}: Success!"))
-                
-                # Print the username and password for successful account creation
-                print(f"Account Created Successfully!\nUsername: {username}\nPassword: {password}")
-                
-                post(webhookroblox, json={
-                    "content": "🚗",
-                    "embeds": [{
-                        "title": f"ROBLOX GEN - Instance {instance_id}",
-                        "description": f"> :white_check_mark:Status : success!\n> :speech_balloon:Name : {username}\n> :closed_lock_with_key:PassWord : ||{password}||\n> :cookie:Cookie : ||{cookie_roblox['value']}||",
-                        "color": 2752256
-                    }]
-                })
-                print(rb(f"Instance {instance_id}: Registered successfully"))
-                saverb.close()
-        except:
-            print(f"Instance {instance_id}: Error, account doesn't have cookies!")
-        
-        # Keep the browser open after successful registration
-        input(f"Instance {instance_id}: Registration complete. Press Enter to close browser.")
-        browser.close()
 
-# Launch 5 instances in parallel
-def launch_multiple_instances():
-    max_instances = 5
-    threads = []
-    for i in range(1, max_instances + 1):  # Launch up to 5 instances
-        thread = threading.Thread(target=main, args=(i,))
-        thread.start()
-        threads.append(thread)
-        sleep(1)  # Add slight delay to prevent launching all at once
+async def get_id(name):
+  try:
+      async with aiohttp.ClientSession() as session:
+          response = await session.post('https://users.roblox.com/v1/usernames/users', json={
+              'usernames': [name],
+              'excludeBannedUsers': True
+          })
+          data = await response.json()
+          if 'data' in data:
+              return data['data'][0]['id']
+  except Exception as err:
+      print(err)
+      return None
 
-    # Wait for all threads to finish
-    for thread in threads:
-        thread.join()
+async def get_rolimons_data(user_id):
+  try:
+      async with aiohttp.ClientSession() as session:
+          response = await session.get(f'https://www.rolimons.com/playerapi/player/{user_id}')
+          data = await response.json()
+          return data
+  except Exception as err:
+      print(err)
+      return None
 
-if __name__ == "__main__":
-    launch_multiple_instances()
+async def get_roblox_user_data(user_id):
+  try:
+      async with aiohttp.ClientSession() as session:
+          response = await session.get(f'https://users.roblox.com/v1/users/{user_id}')
+          data = await response.json()
+          return data
+  except Exception as err:
+      print(err)
+      return None
+
+@client.event
+async def on_ready():
+  await tree.sync()
+  print("Ready!")
+
+@tree.command(name="test", description="Alt Generation Command")
+async def alt_command(interaction):
+  
+  user_id = str(interaction.user.id)
+  if user_id in cooldowns and datetime.utcnow() < cooldowns[user_id]:
+      retry_after = (cooldowns[user_id] - datetime.utcnow()).seconds
+      return await interaction.response.send_message(f"This command is on cooldown. Try again in {retry_after} seconds.")
+
+  # Set cooldown change it to anything you want
+  cooldowns[user_id] = datetime.utcnow() + timedelta(seconds=20)
+
+  
+  file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stock', 'test.txt')
+
+  
+  try:
+      with open(file_path, "r") as file:
+          lines = file.readlines()
+  except FileNotFoundError:
+      return await interaction.response.send_message(f"Error: '{file_path}' not found.")
+
+  if not lines:
+      
+      embed_out_of_stock = discord.Embed(title="Out of stock",
+                                         description="Sorry, we are out of stock. Please be patient and let us restock :(",
+                                         colour=0xa2161d)
+      return await interaction.response.send_message(embed=embed_out_of_stock)
+
+  
+  line = lines[0].strip()
+  pro, noob = line.split(":")
+
+  
+  user_id_response = await get_id(pro)
+
+  if not user_id_response:
+      return await interaction.response.send_message("Error getting user ID from Roblox API.")
+
+  
+  rol_data = await get_rolimons_data(user_id_response)
+
+  if not rol_data:
+      return await interaction.response.send_message("Error getting data from Rolimons API.")
+
+  
+  roblox_data = await get_roblox_user_data(user_id_response)
+
+  if not roblox_data:
+      return await interaction.response.send_message("Error getting user data from Roblox API.")
+
+  
+  try:
+      embed_dm = discord.Embed(title="Profile link",
+                               url=f"https://www.roblox.com/users/{user_id_response}/profile",
+                               colour=0x17fda5)
+
+      embed_dm.add_field(name="Username", value=f"```{pro}```", inline=True)
+      embed_dm.add_field(name="Password", value=f"```{noob}```", inline=True)
+      embed_dm.add_field(name="Combo", value=f"```{line}```", inline=False)
+      
+
+      await interaction.user.send(embed=embed_dm)
+  except discord.errors.Forbidden:
+      return await interaction.response.send_message("Error: Could not send a DM to the user. Please ensure DMs are enabled.")
+
+  
+  embed_channel = discord.Embed(title="<:tick:1201594747173740654> Account sent in dms!",
+                                description="Generated successfully",
+                                colour=0x00b0f4,
+                                timestamp=datetime.now())
+
+  await interaction.response.send_message(embed=embed_channel)
+
+
+  
+  with open(file_path, "w") as file:
+      file.writelines(lines[1:])
+
+
+client.run('MTMyMzI5OTQ2ODYxMDc2NDg1MQ.GpDvTl.u_DiEbccz8tfLLnKlDgvK1pbsLBEEWFPXxL284')
